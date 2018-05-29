@@ -37,65 +37,65 @@ public class DTable {
 
 		Logger logger = Logger.getLogger(DTable.class.getName());
 
- 			Workbook workbook = null;
-			try {
-				workbook = WorkbookFactory.create(file);
-			} catch (EncryptedDocumentException | InvalidFormatException | IOException e) {
-				e.printStackTrace();
+		Workbook workbook = null;
+		try {
+			workbook = WorkbookFactory.create(file);
+		} catch (EncryptedDocumentException | InvalidFormatException | IOException e) {
+			e.printStackTrace();
+		}
+		Sheet sheet = workbook.getSheetAt(0);
+		
+		String ruleTableName = "";
+		
+		int rowNum = sheet.getLastRowNum();
+		for ( int i = 0; i < rowNum; i++ ) {
+			Row row = sheet.getRow(i);
+			if ( row == null ) {
+				if ( ruleTableName != "") {
+					RuleInfo ri = conditionColumns.get(ruleTableName);
+					ri.setLastRow(i - 1);
+				}
+				continue;
 			}
-			Sheet sheet = workbook.getSheetAt(0);
-			
-			String ruleTableName = "";
-			
-			int rowNum = sheet.getLastRowNum();
-			for ( int i = 0; i < rowNum; i++ ) {
+			int cellNum = row.getLastCellNum();
+			for (int n = 0; n < cellNum; n++) {
+				Cell cell = row.getCell(n);
+				if (cell == null) continue;
+				String cellValue = cell.getStringCellValue();
+				if ( cellValue.startsWith(RULETABLE)) {
+					ruleTableName = cellValue;
+					conditionColumns.put(cellValue, new RuleInfo(cellValue));
+				} else if (cellValue.equals(CONDITION)) {
+					RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
+					ruleInfo.getConditionColumns().add(n);
+					conditionColumns.put(ruleTableName, ruleInfo);
+					ruleInfo.setStartRow(i + 4);
+					ruleInfo.setLastRow(sheet.getLastRowNum()-1);
+				}
+			}
+		}
+					
+		for(RuleInfo rule : conditionColumns.values()) {
+			for (int i = rule.getStartRow(); i <= rule.getLastRow(); i++) {
 				Row row = sheet.getRow(i);
-				if ( row == null ) {
-					if ( ruleTableName != "") {
-						RuleInfo ri = conditionColumns.get(ruleTableName);
-						ri.setLastRow(i - 1);
-					}
-					continue;
-				}
-				int cellNum = row.getLastCellNum();
-				for (int n = 0; n < cellNum; n++) {
+				if ( row == null ) continue;
+				for (Integer n : rule.getConditionColumns()) {
 					Cell cell = row.getCell(n);
-					if (cell == null) continue;
-					String cellValue = cell.getStringCellValue();
-					if ( cellValue.startsWith(RULETABLE)) {
-						ruleTableName = cellValue;
-						conditionColumns.put(cellValue, new RuleInfo(cellValue));
-					} else if (cellValue.equals(CONDITION)) {
-						RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
-						ruleInfo.getConditionColumns().add(n);
-						conditionColumns.put(ruleTableName, ruleInfo);
-						ruleInfo.setStartRow(i + 4);
-						ruleInfo.setLastRow(sheet.getLastRowNum()-1);
+					String value = cell.getStringCellValue();
+					if (value == null || value.equals("")) continue;
+					Map<String, List<String>> map = rule.getMap();
+					if ( !map.containsKey(Integer.toString(n))) {
+						map.put(Integer.toString(n), new ArrayList<String>(Arrays.asList("")));
 					}
+					List<String> list = map.get(Integer.toString(n));
+					if ( !list.contains(value) )
+						list.add(value);
+					map.put(Integer.toString(n), list);
 				}
 			}
-						
-			for(RuleInfo rule : conditionColumns.values()) {
-				for (int i = rule.getStartRow(); i <= rule.getLastRow(); i++) {
-					Row row = sheet.getRow(i);
-					if ( row == null ) continue;
-					for (Integer n : rule.getConditionColumns()) {
-						Cell cell = row.getCell(n);
-						String value = cell.getStringCellValue();
-						if (value == null || value.equals("")) continue;
-						Map<String, List<String>> map = rule.getMap();
-						if ( !map.containsKey(Integer.toString(n))) {
-							map.put(Integer.toString(n), new ArrayList<String>(Arrays.asList("")));
-						}
-						List<String> list = map.get(Integer.toString(n));
-						if ( !list.contains(value) )
-							list.add(value);
-						map.put(Integer.toString(n), list);
-					}
-				}
-			}
-			logger.log(Level.INFO, conditionColumns);
-			return conditionColumns;
+		}
+		logger.log(Level.INFO, conditionColumns);
+		return conditionColumns;
 	}
 	
 	public static void main(String[] args) {

@@ -14,8 +14,8 @@ import org.jboss.logging.Logger.Level;
 public class ProduceTestCase {
 	
 	public static void main(String[] args) throws IOException {
-		//String filepath = "src/main/resources/dtables/DealerClasificationRule.xlsx";
-		String filepath = "src/main/resources/dtables/Sample.xls";
+		String filepath = "src/main/resources/dtables/DealerClasificationRule.xlsx";
+		// String filepath = "src/main/resources/dtables/Sample.xls";
 		Logger logger = Logger.getLogger(ProduceTestCase.class.getName());
 		
 		Map<String, RuleInfo> conditionColumns = DTable.getRuleInfo(new File(filepath));
