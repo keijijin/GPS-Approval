@@ -25,6 +25,7 @@ public class Cartesian {
 		String strXYZ[][] = {{"abc", "lmn", "opq", "xyz"}, {"+", "-", "*", "/"},{"アイウエオ", "かきくけこ", "やゆよ"}};
 
 		List<Supplier<Stream<String>>> l = new ArrayList<Supplier<Stream<String>>>();
+		
 		for(String[] strs : strXYZ) {
 			l.add(() -> Stream.of(strs));
 		}
