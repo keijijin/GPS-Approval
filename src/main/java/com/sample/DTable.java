@@ -10,21 +10,15 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.drools.compiler.compiler.io.Resource;
-import org.drools.core.io.impl.FileSystemResource;
-import org.drools.decisiontable.InputType;
-import org.drools.decisiontable.SpreadsheetCompiler;
-import org.drools.decisiontable.parser.DefaultRuleSheetListener;
-import org.drools.decisiontable.parser.xls.ExcelParser;
-import org.drools.template.parser.DataListener;
-import org.drools.template.parser.TemplateDataListener;
 import org.jboss.logging.Logger;
 import org.jboss.logging.Logger.Level;
 
@@ -32,6 +26,7 @@ public class DTable {
 	static final String RULETABLE = "RuleTable";
 	static final String CONDITION = "CONDITION";
 
+	@SuppressWarnings("deprecation")
 	public static Map<String, RuleInfo> getRuleInfo(File file) {
 		Map<String, RuleInfo> conditionColumns = new HashMap<String, RuleInfo>();
 
@@ -63,8 +58,12 @@ public class DTable {
 				if (cell == null) continue;
 				String cellValue = cell.getStringCellValue();
 				if ( cellValue.startsWith(RULETABLE)) {
+					if (ruleTableName != null && !ruleTableName.equals("")) {
+						RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
+						ruleInfo.setLastRow(i-1);
+					}
 					ruleTableName = cellValue;
-					conditionColumns.put(cellValue, new RuleInfo(cellValue));
+					conditionColumns.put(ruleTableName, new RuleInfo(cellValue));
 				} else if (cellValue.equals(CONDITION)) {
 					RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
 					ruleInfo.getConditionColumns().add(n);
@@ -79,36 +78,66 @@ public class DTable {
 			for (int i = rule.getStartRow(); i <= rule.getLastRow(); i++) {
 				Row row = sheet.getRow(i);
 				if ( row == null ) continue;
+				Map<String, List<String>> map = rule.getMap();
 				for (Integer n : rule.getConditionColumns()) {
 					Cell cell = row.getCell(n);
-					String value = cell.getStringCellValue();
-					if (value == null || value.equals("")) continue;
-					Map<String, List<String>> map = rule.getMap();
-					if ( !map.containsKey(Integer.toString(n))) {
-						map.put(Integer.toString(n), new ArrayList<String>(Arrays.asList("")));
+					if (cell == null) continue;
+					switch (cell.getCellType()) {
+					case Cell.CELL_TYPE_NUMERIC:
+						double num = cell.getNumericCellValue();
+						//String strNum = Double.toString(num);
+						//if ( strNum == null || strNum.equals("")) continue;
+						putColumnValues(Integer.toString(n), Double.toString(num-1), map);
+						putColumnValues(Integer.toString(n), Double.toString(num), map);
+						putColumnValues(Integer.toString(n), Double.toString(num+1), map);
+						break;
+					case Cell.CELL_TYPE_STRING:
+					default:
+						String value = cell.getStringCellValue();
+						if (value == null || value.equals("")) continue;
+						String[] strs = value.split(",");
+						for (int x = 0; x < strs.length; x++ ) {
+							if (NumberUtils.isNumber(strs[x])) {
+								Double d = Double.parseDouble(strs[x]);
+								putColumnValues(Integer.toString(n), Double.toString(d-1), map);
+								putColumnValues(Integer.toString(n), Double.toString(d), map);
+								putColumnValues(Integer.toString(n), Double.toString(d+1), map);								
+							} else {
+								putColumnValues(Integer.toString(n), strs[x], map);
+							}
+						}
+						break;
 					}
-					List<String> list = map.get(Integer.toString(n));
-					if ( !list.contains(value) )
-						list.add(value);
-					map.put(Integer.toString(n), list);
 				}
 			}
 		}
-		logger.log(Level.INFO, conditionColumns);
+		//logger.log(Level.INFO, conditionColumns);
 		return conditionColumns;
+	}
+
+	private static void putColumnValues(String n, String value, Map<String, List<String>> map) {
+		if ( !map.containsKey(n)) {
+			map.put(n, new ArrayList<String>(Arrays.asList("")));
+		}
+		List<String> list = map.get(n);
+		if ( !list.contains(value) )
+			list.add(value);
+		map.put(n, list);
 	}
 	
 	public static void main(String[] args) {
 		Logger logger = Logger.getLogger(DTable.class.getName());
 
-		String filepath = "src/main/resources/dtables/DealerClasificationRule.xlsx";
+		//String filepath = "src/main/resources/dtables/DealerClasificationRule.xlsx";
+		String filepath = "src/main/resources/dtables/NaritaDomesticRule.xls";
 		// String filepath = "src/main/resources/dtables/Sample.xls";
 		// String filepath = "src/main/resources/dtables/IncentiveDetailRule.xlsx";
 
 		Map<String, RuleInfo> conditionColumns = getRuleInfo(new File(filepath));		
-			
+		logger.log(Level.INFO, conditionColumns);
+		
 		for (RuleInfo rule : conditionColumns.values()) {
-			logger.log(Level.INFO, rule);
+			//logger.log(Level.INFO, rule);
 			Map<String, List<String>> map = rule.getMap();
 				
 			List<Supplier<Stream<String>>> list = new ArrayList<Supplier<Stream<String>>>();
@@ -116,8 +145,11 @@ public class DTable {
 			map.values().stream().forEach(l -> {
 				list.add(()->l.stream());
 			});
+			
+			//if (rule.getRuleName().equals("RuleTable 国内線基本着陸料"))
 			Cartesian.go((a, b) -> a + "," + b, list)
 							.forEach(System.out::println);
 		}
+		
 	}
 }

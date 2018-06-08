@@ -22,7 +22,7 @@ public class Cartesian {
     }
 
     public static void main(String[] args) {
-		String strXYZ[][] = {{"abc", "lmn", "opq", "xyz"}, {"+", "-", "*", "/"},{"アイウエオ", "かきくけこ", "やゆよ"}};
+		String strXYZ[][] = {{"", "abc", "lmn", "opq", "xyz"}, {"", "+", "-", "*", "/"},{"", "アイウエオ", "かきくけこ", "やゆよ"}};
 
 		List<Supplier<Stream<String>>> l = new ArrayList<Supplier<Stream<String>>>();
 		
@@ -30,11 +30,28 @@ public class Cartesian {
 			l.add(() -> Stream.of(strs));
 		}
 
-		go((a, b) -> a + "," + b, l).forEach(System.out::println);
+		/*
+		List<List<String>> list = new ArrayList<List<String>>();
+		go((a, b) -> a + "," + b, l).forEach(str -> {list.add(Arrays.asList(str.split(",")));});
+		list.stream().forEach(System.out::println);
+		*/
 		
+		List<String[]> list = new ArrayList<String[]>();
+		go((a,b)->a + "," + b, l).forEach(str -> {
+			list.add(str.split(","));
+		});
+		list.stream().forEach(strs -> {
+			for (int n = 0; n < strs.length; n++) {
+				System.out.print(strs[n]);
+				if (n < strs.length-1) System.out.print(",");
+			}
+			System.out.println("");
+		});
+		/*
         go((a, b) -> a + "," + b,
             () -> Stream.of("1", "2", "3"),
             () -> Stream.of("A", "B")
         ).forEach(System.out::println);
+        */
     }
 }
