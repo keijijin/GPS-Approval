@@ -56,20 +56,28 @@ public class DTable {
 			for (int n = 0; n < cellNum; n++) {
 				Cell cell = row.getCell(n);
 				if (cell == null) continue;
-				String cellValue = cell.getStringCellValue();
-				if ( cellValue.startsWith(RULETABLE)) {
-					if (ruleTableName != null && !ruleTableName.equals("")) {
+				switch(cell.getCellType()) {
+				case Cell.CELL_TYPE_NUMERIC:
+				case Cell.CELL_TYPE_BOOLEAN:
+				case Cell.CELL_TYPE_BLANK:
+					break;
+				case Cell.CELL_TYPE_STRING:
+				default:
+					String cellValue = cell.getStringCellValue();
+					if ( cellValue.startsWith(RULETABLE)) {
+						if (ruleTableName != null && !ruleTableName.equals("")) {
+							RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
+							ruleInfo.setLastRow(i-1);
+						}
+						ruleTableName = cellValue;
+						conditionColumns.put(ruleTableName, new RuleInfo(cellValue));
+					} else if (cellValue.equals(CONDITION)) {
 						RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
-						ruleInfo.setLastRow(i-1);
+						ruleInfo.getConditionColumns().add(n);
+						conditionColumns.put(ruleTableName, ruleInfo);
+						ruleInfo.setStartRow(i + 4);
+						ruleInfo.setLastRow(sheet.getLastRowNum()-1);
 					}
-					ruleTableName = cellValue;
-					conditionColumns.put(ruleTableName, new RuleInfo(cellValue));
-				} else if (cellValue.equals(CONDITION)) {
-					RuleInfo ruleInfo = conditionColumns.get(ruleTableName);
-					ruleInfo.getConditionColumns().add(n);
-					conditionColumns.put(ruleTableName, ruleInfo);
-					ruleInfo.setStartRow(i + 4);
-					ruleInfo.setLastRow(sheet.getLastRowNum()-1);
 				}
 			}
 		}
@@ -129,9 +137,10 @@ public class DTable {
 		Logger logger = Logger.getLogger(DTable.class.getName());
 
 		//String filepath = "src/main/resources/dtables/DealerClasificationRule.xlsx";
-		String filepath = "src/main/resources/dtables/NaritaDomesticRule.xls";
+		//String filepath = "src/main/resources/dtables/NaritaDomesticRule.xls";
 		// String filepath = "src/main/resources/dtables/Sample.xls";
-		// String filepath = "src/main/resources/dtables/IncentiveDetailRule.xlsx";
+		//String filepath = "src/main/resources/dtables/IncentiveDetailRule.xlsx";
+		String filepath = "src/main/resources/dtables/電力料金.xls";
 
 		Map<String, RuleInfo> conditionColumns = getRuleInfo(new File(filepath));		
 		logger.log(Level.INFO, conditionColumns);
