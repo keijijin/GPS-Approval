@@ -6,7 +6,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -46,7 +45,9 @@ public class ProduceTestCase {
 			});
 			res.put(ruleInfo.getRuleName(), new ArrayList<List<String>>());
 			List<List<String>> result = res.get(ruleInfo.getRuleName());
-			Cartesian.go((a, b) -> a + "," + b, list).forEach(str -> {result.add(Arrays.asList(str.split(",")));});
+			Cartesian.go((a, b) -> a + "," + b, list).forEach(str -> {
+				result.add(Arrays.asList(str.split(",")));
+				});
 		}
 		logger.log(Level.INFO, res);
 		
@@ -78,19 +79,21 @@ public class ProduceTestCase {
 	            kSession.insert(power);
 	            kSession.fireAllRules();
 	            
-	            System.out.println("電力量料金 : " + power.get電力量料金());
-	            System.out.println(power);
+	            //System.out.println("電力量料金 : " + power.get電力量料金());
+	            //System.out.println(power);
 	            
 	            if (power.getRule() != null && map.get(power.getRule()) == null)
 	            	map.put(power.getRule(), power);
 	            
 	            FactHandle handle = kSession.getFactHandle(power);
 	            kSession.delete(handle);
-            }
-            
+        	}
+        
+            logger.log(Level.INFO, map);
+                        
             File file = new File("TestData.csv");
             PrintWriter writer = new PrintWriter(file);
-            writer.println("Name, Contract, Power amount");
+            writer.println("Name, Contract, Power amount, Applied Rule");
             map.entrySet().stream()
             	.sorted(java.util.Map.Entry.comparingByKey())
             	.forEach(s -> writer.println(s.getValue().toCsv()));

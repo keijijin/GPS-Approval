@@ -16,6 +16,6 @@ public class Power {
 	private String rule;
 	
 	public String toCsv() {
-		return get氏名() + "," + get契約電流() + "," + get電力量();
+		return get氏名() + "," + get契約電流() + "," + get電力量() + "," + getRule();
 	}
 }
